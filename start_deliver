@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo 'whoami...'
+aws sts get-caller-identity
+
+echo 'list queues...'
+aws sqs list-queues
+
+echo 'Start deliver...' 1>&2
+/usr/local/bin/sqs-to-lmtp --lmtp-host ${LMTP_HOST:-dovecot} --lmtp-port 24
+

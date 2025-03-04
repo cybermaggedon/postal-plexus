@@ -1,0 +1,33 @@
+#!/bin/sh
+
+echo 'Configure postfix...' 1>&2
+
+mkdir -p /etc/postfix/pki
+
+echo "${TLS_KEY}" > /etc/postfix/pki/server.key
+echo "${TLS_CERTIFICATE}" > /etc/postfix/pki/server.crt
+
+SASL_AUTH_HOST=${SASL_AUTH_HOST:-dovecot}
+SASL_AUTH_PORT=${SASL_AUTH_PORT:-24}
+
+echo Relay host: ${RELAY_HOST}
+echo Relay port: ${RELAY_PORT}
+echo SASL auth_host: ${SASL_AUTH_HOST}
+echo SASL auth port: ${SASL_AUTH_PORT}
+
+postconf -e \
+    "relayhost = [${RELAY_HOST}]:${RELAY_PORT}" \
+    "myhostname = ${DOMAIN}" \
+    "smtpd_sasl_path = inet:${SASL_AUTH_HOST}:${SASL_AUTH_PORT}"
+
+echo "[${RELAY_HOST}]:${RELAY_PORT} ${RELAY_USERNAME}:${RELAY_PASSWORD}" \
+    > /etc/postfix/sasl_passwd
+
+postmap /etc/postfix/sasl_passwd
+
+postalias /etc/postfix/aliases
+
+echo 'Start postfix...' 1>&2
+
+postfix start-fg
+

@@ -1,0 +1,41 @@
+
+FROM alpine:3.21.3
+
+ENV DOMAIN=example.com
+ENV RELAY_USERNAME=user
+ENV RELAY_PASSWORD=password
+ENV RELAY_HOST=email-smtp.eu-west-2.amazonaws.com
+ENV RELAY_PORT=2587
+ENV SASL_AUTH_HOST=dovecot
+ENV SASL_AUTH_PORT=12345
+
+RUN apk add --no-cache postfix postfix-pcre
+RUN echo "maillog_file = /dev/stdout" >> /etc/postfix/main.cf
+
+RUN \
+    postconf -e \
+        'smtpd_sasl_auth_enable = yes' \
+        'smtpd_sasl_type = dovecot' \
+        'smtpd_sasl_local_domain =' \
+        'smtpd_sasl_security_options = noanonymous' \
+        'broken_sasl_auth_clients = yes' \
+        'smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination' \
+        'smtpd_tls_security_level = may' \
+        'smtpd_tls_key_file = /etc/postfix/pki/server.key' \
+        'smtpd_tls_cert_file = /etc/postfix/pki/server.crt' \
+        'smtpd_tls_loglevel = 1' \
+        'smtpd_tls_received_header = yes' \
+        'smtp_sasl_auth_enable = yes' \
+        'smtp_sasl_security_options = noanonymous' \
+        'smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd' \
+        'smtp_tls_security_level = encrypt' \
+        'smtp_tls_note_starttls_offer = yes' \
+        'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
+
+COPY start_postfix /start
+RUN chmod 755 /start
+
+EXPOSE 25
+
+CMD [ "/bin/sh", "/start" ]
+

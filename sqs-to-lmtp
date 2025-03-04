@@ -1,0 +1,212 @@
+#!/usr/bin/env python
+
+"""
+sqs-to-lmtp subscribes to an AWS SQS queue for email from the SES service
+
+"""
+
+import logging
+import json
+import boto3
+import time
+import smtplib
+import sys
+import os
+import argparse
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("deliver")
+
+class Relay:
+
+    def __init__(self, **args):
+
+        logger.info("Deliver starting...")
+
+        self.session = boto3.session.Session(
+            aws_access_key_id = args.get("aws_access_key_id"),
+            aws_secret_access_key = args.get("aws_secret_access_key"),
+            aws_session_token = args.get("aws_session_token"),
+            region_name = args.get("aws_region"),
+            profile_name = args.get("aws_profile"),
+        )
+
+        self.queue_name = args.get("queue_name")
+        self.timeout = args.get("receive_timeout")
+
+        self.lmtp_host = args.get("lmtp_host")
+        self.lmtp_port = args.get("lmtp_port")
+
+        logger.info(f"LMTP host: {self.lmtp_host}")
+        logger.info(f"LMTP port: {self.lmtp_port}")
+        logger.info(f"Timeout: {self.timeout}")
+        logger.info(f"Queue name: {self.queue_name}")
+
+    def run(self):
+
+        while True:
+            try:
+                self.receive()
+            except Exception as e:
+                logger.error(f"Exception: {e}")
+                time.sleep(10)
+                logger.info("Restarting...")
+
+    def receive(self):
+
+        logger.info("Connecting to AWS...")
+
+        sqs = self.session.client("sqs")
+        s3 = self.session.client("s3")
+
+        queue_url = sqs.get_queue_url(QueueName=self.queue_name)["QueueUrl"]
+
+        logger.info(f"Using queue {queue_url}")
+
+        logger.info("Connected.")
+
+        while True:
+
+            response = sqs.receive_message(
+                QueueUrl = queue_url,
+                WaitTimeSeconds = self.timeout,
+            )
+
+            if "Messages" not in response:
+                logger.debug("Idle...")
+                continue
+
+            for msg in response["Messages"]:
+
+                logger.info("Processing message.")
+
+                logger.info("- Unpack body...")
+                body = json.loads(msg["Body"])
+                receipt = msg["ReceiptHandle"]
+
+                logger.info("- Unpack message...")
+                message = json.loads(body["Message"])
+
+                logger.info("- Get metadata...")
+                key = message["receipt"]["action"]["objectKey"]
+                bucket = message["receipt"]["action"]["bucketName"]
+                prefix = message["receipt"]["action"]["objectKeyPrefix"]
+
+                logger.info("- Get bucket object...")
+                object = s3.get_object(
+                    Bucket = bucket,
+                    Key = key,
+                )
+
+                logger.info("- Read object...")
+                content = object["Body"].read()
+
+                logger.info("- Relaying...")
+
+                print(self.lmtp_host)
+                print(self.lmtp_port)
+
+                s = smtplib.LMTP(
+                    host = self.lmtp_host,
+                    port = self.lmtp_port,
+                )
+
+                s.sendmail(
+                    from_addr = "localhost",         # Doesn't matter
+                    to_addrs = [prefix],   # Sets destination box
+                    msg = content,
+                )
+
+                s.quit()
+
+                logger.info("- Delete message from queue...")
+
+                s3.delete_object(
+                    Bucket = bucket,
+                    Key = key,
+                )
+
+                sqs.delete_message(
+                    QueueUrl = queue_url,
+                    ReceiptHandle = receipt,
+                )
+
+                logger.info("- Message processed.")
+
+            logger.info("Messages processed.")
+
+            logger.info("Wait for next...")
+            time.sleep(4)
+
+
+def run():
+
+    parser = argparse.ArgumentParser(
+        prog="sqs-to-lmtp",
+        description=__doc__
+    )
+
+    default_lmtp_host = "localhost"
+    default_lmtp_port = 24
+    default_receive_timeout = 5
+    default_queue_name = 'mail'
+
+    parser.add_argument(
+        '-L', '--lmtp-host',
+        default=default_lmtp_host,
+        help=f'LTMP host (default: {default_lmtp_host})',
+    )
+
+    parser.add_argument(
+        '-P', '--lmtp-port',
+        default=default_lmtp_port,
+        type=int,
+        help=f'LTMP host (default: {default_lmtp_port})',
+    )
+
+    parser.add_argument(
+        '--aws-access-key-id',
+        help=f'AWS access key ID',
+    )
+
+    parser.add_argument(
+        '--aws-secret-access-key',
+        help=f'AWS secret access key',
+    )
+
+    parser.add_argument(
+        '--aws-session-token',
+        help=f'AWS session token',
+    )
+
+    parser.add_argument(
+        '-r', '--aws-region',
+        help=f'AWS region',
+    )
+
+    parser.add_argument(
+        '-p', '--aws-profile',
+        help=f'AWS profile',
+    )
+
+    parser.add_argument(
+        '--receive-timeout',
+        type=int,
+        default=default_receive_timeout,
+        help=f'SQS receive timeout (default: {default_receive_timeout})',
+    )
+
+    parser.add_argument(
+        '--queue-name',
+        default=default_queue_name,
+        help=f'SQS queue name (default: {default_queue_name})',
+    )
+
+    args = parser.parse_args()
+    args = vars(args)
+
+    r = Relay(**args)
+    r.run()
+
+run()
+

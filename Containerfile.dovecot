@@ -1,0 +1,23 @@
+
+FROM alpine:3.21.3
+
+RUN apk add --no-cache dovecot dovecot-lmtpd
+RUN addgroup -g 10000 vmail
+RUN adduser -u 10000 -h /home/vmail -g vmail -D -G vmail -s /bin/false vmail
+
+EXPOSE 143
+EXPOSE 993
+EXPOSE 12345
+EXPOSE 24
+
+COPY dovecot-conf/10-logging.conf /etc/dovecot/conf.d/
+COPY dovecot-conf/10-master.conf /etc/dovecot/conf.d/
+COPY dovecot-conf/10-mail.conf /etc/dovecot/conf.d/
+COPY dovecot-conf/10-ssl.conf /etc/dovecot/conf.d/
+COPY dovecot-conf/15-lda.conf /etc/dovecot/conf.d/
+
+COPY start_dovecot /start
+RUN chmod 755 /start
+
+CMD ["/bin/sh", "/start"]
+

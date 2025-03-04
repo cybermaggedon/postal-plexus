@@ -1,0 +1,11 @@
+
+FROM alpine:3.21.3
+
+RUN apk add --no-cache python3 py3-pip py3-boto3 aws-cli
+
+COPY sqs-to-lmtp /usr/local/bin/
+COPY start_deliver /start
+RUN chmod 755 /start
+
+CMD [ "/bin/sh", "/start" ]
+

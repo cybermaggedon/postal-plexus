@@ -1,0 +1,46 @@
+#!/bin/sh
+
+echo 'Configure dovecot...' 1>&2
+
+# This may be a volume mount, set the owner
+chown vmail /var/mailbox/
+
+mkdir -p /etc/pki/dovecot/certs
+mkdir -p /etc/pki/dovecot/private
+
+echo "${TLS_CERTIFICATE}" > /etc/pki/dovecot/certs/dovecot.pem
+echo "${TLS_CA_CERTIFICATE}" > /etc/pki/dovecot/certs/ca.pem
+echo "${TLS_KEY}" > /etc/pki/dovecot/private/dovecot.pem
+
+i=0
+
+user_file=/etc/dovecot/users
+
+> ${user_file}
+
+while [ true ]
+do
+
+    eval user='${MAIL_USER_'${i}'}'
+    eval password='${MAIL_PASSWORD_'${i}'}'
+
+    if [ -z "${user}" ]
+    then
+        break
+    fi
+    
+    echo Configure user $user...
+
+    password=`doveadm pw -p ${password}`
+
+    echo "${user}:${password}:10000:10000:${user}:/home/vmail:" >> \
+         ${user_file}
+
+    i=`expr ${i} + 1`
+
+done
+      
+echo 'Start dovecot...' 1>&2
+
+/usr/sbin/dovecot -F
+
