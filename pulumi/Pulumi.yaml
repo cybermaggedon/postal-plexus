@@ -1,0 +1,5 @@
+name: postal-plexus
+description: A simple Dovecot + Postfix deploy to AWS, with SES integration
+runtime: nodejs
+backend:
+  url: s3://my-deploy-bucket/postal-plexus?region=eu-west-2

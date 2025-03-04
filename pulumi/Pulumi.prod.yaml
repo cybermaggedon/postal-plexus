@@ -1,0 +1,20 @@
+encryptionsalt: v1:uDG96YNyxA4=:v1:FTko14h/Sx9BiVQ4:WqXnZ+HLcRw/f/reEUVHQrP8saIS1Q==
+config:
+  postal-plexus:environment: main
+  postal-plexus:region: eu-west-2
+  postal-plexus:vpc-cidr: 172.38.0.0/16
+  postal-plexus:pub-subnet-cidr: 172.38.48.0/20
+
+  postal-plexus:endpoint-hostname: mail.mydomain.net
+  postal-plexus:endpoint-domain: mydomain.net
+
+  postal-plexus:mail-domains:
+  - mydomain1.com
+  - mydomain2.com
+
+  postal-plexus:users:
+  - user: mydomain1.com
+    password: ksajdhajshdkasjdhoihsfiahsof
+  - user: mydomain2.com
+    password: lifeuopuwoeuoijfpfsdhaosdahsdo
+
