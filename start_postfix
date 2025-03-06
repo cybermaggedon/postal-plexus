@@ -15,10 +15,38 @@ echo Relay port: ${RELAY_PORT}
 echo SASL auth_host: ${SASL_AUTH_HOST}
 echo SASL auth port: ${SASL_AUTH_PORT}
 
+# ----------------------------------------------------------------------------
+
+rm -f /etc/postfix/vmailbox
+touch /etc/postfix/vmailbox
+for domain in ${MAIL_DOMAINS}
+do
+    echo "@${domain} ${domain}" >> /etc/postfix/vmailbox
+done
+
+postmap /etc/postfix/vmailbox
+
+# ----------------------------------------------------------------------------
+
+rm -f /etc/postfix/virtual
+touch /etc/postfix/virtual
+for domain in ${MAIL_DOMAINS}
+do
+    echo "postmaster@${domain} ${domain}" >> /etc/postfix/virtual
+done
+
+postmap /etc/postfix/virtual
+
+# ----------------------------------------------------------------------------
+
 postconf -e \
     "relayhost = [${RELAY_HOST}]:${RELAY_PORT}" \
-    "myhostname = ${DOMAIN}" \
-    "smtpd_sasl_path = inet:${SASL_AUTH_HOST}:${SASL_AUTH_PORT}"
+    "myhostname = ${HOSTNAME}" \
+    "smtpd_sasl_path = inet:${SASL_AUTH_HOST}:${SASL_AUTH_PORT}" \
+    "virtual_transport = lmtp:${LMTP_HOST}:${LMTP_PORT}" \
+    "virtual_mailbox_domains = ${MAIL_DOMAINS}" \
+    "virtual_mailbox_maps = lmdb:/etc/postfix/vmailbox" \
+    "virtual_alias_maps = lmdb:/etc/postfix/virtual"
 
 echo "[${RELAY_HOST}]:${RELAY_PORT} ${RELAY_USERNAME}:${RELAY_PASSWORD}" \
     > /etc/postfix/sasl_passwd
