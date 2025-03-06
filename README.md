@@ -3,7 +3,9 @@
 
 ## Overview
 
-This is a simple mail system deployed to AWS:
+This works for me managing email for a small number of domains.
+
+This is a low-footprint mail system deployed to AWS:
 - SES is used to integrate with the global email system
 - Dovecot provides IMAP mailboxes
 - Postfix relays SMTP to AWS SES.
