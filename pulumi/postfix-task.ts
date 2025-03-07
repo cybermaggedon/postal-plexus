@@ -2,7 +2,10 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 
-import { prefix, tags, region, users, endpointHostname } from './config';
+import {
+    prefix, tags, region, users, endpointHostname, mailDomains, mailboxes,
+    aliases
+} from './config';
 import { awsProvider } from './aws-provider';
 import { postfixImageName } from './postfix-image';
 import { execRole } from './exec-role';
@@ -67,21 +70,28 @@ const postfixTaskDefinition = new aws.ecs.TaskDefinition(
                             value: emailSmtpPassword
                         },
                         {
-                            name: "RELAY_HOSTNAME",
+                            name: "RELAY_HOST",
                             value: `email-smtp.${region}.amazonaws.com`
                         },
                         {
-                            name: "DOMAIN",
-                            value: endpointHostname
+                            name: "RELAY_PORT",
+                            value: "2587"
+                        },
+                        {
+                            name: "LMTP_HOST",
+                            value: eni.privateIp
+                        },
+                        {
+                            name: "LMTP_PORT",
+                            value: "24"
                         },
                         {
                             name: "SASL_AUTH_HOST",
-/*
-                            value: serviceNamespace.name.apply(
-                                d => `dovecot.${d}`
-                            )
-                            */
                             value: eni.privateIp
+                        },
+                        {
+                            name: "SASL_AUTH_PORT",
+                            value: "12345"
                         },
                         {
                             name: "TLS_KEY",
@@ -91,6 +101,25 @@ const postfixTaskDefinition = new aws.ecs.TaskDefinition(
                             name: "TLS_CERTIFICATE",
                             value: serviceCert.certPem
                         },
+                        {
+                            name: "HOSTNAME",
+                            value: "localhost"
+                        },
+                        {
+                            name: "MAIL_DOMAINS",
+                            value: mailDomains.join(" ")
+                        },
+                        {
+                            name: "MAILBOXES",
+                            value: mailboxes.join(" ")
+                        },
+                        {
+                            name: "ALIASES",
+                            value: aliases.map(
+                                (a) => `${a.alias}=${a.destination}`
+                            ).join(" ")
+                        },
+
                     ],
                     portMappings: [
                         {

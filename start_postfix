@@ -8,24 +8,66 @@ echo "${TLS_KEY}" > /etc/postfix/pki/server.key
 echo "${TLS_CERTIFICATE}" > /etc/postfix/pki/server.crt
 
 SASL_AUTH_HOST=${SASL_AUTH_HOST:-dovecot}
-SASL_AUTH_PORT=${SASL_AUTH_PORT:-24}
+SASL_AUTH_PORT=${SASL_AUTH_PORT:-12345}
+
+RELAY_PORT=${RELAY_PORT:-587}
 
 echo Relay host: ${RELAY_HOST}
 echo Relay port: ${RELAY_PORT}
 echo SASL auth_host: ${SASL_AUTH_HOST}
 echo SASL auth port: ${SASL_AUTH_PORT}
+echo LMTP host: ${LMTP_HOST}
+echo LMTP port: ${LMTP_PORT}
 
-postconf -e \
-    "relayhost = [${RELAY_HOST}]:${RELAY_PORT}" \
-    "myhostname = ${DOMAIN}" \
-    "smtpd_sasl_path = inet:${SASL_AUTH_HOST}:${SASL_AUTH_PORT}"
+echo Aliases:
+echo ${ALIASES}
+
+# ----------------------------------------------------------------------------
+
+rm -f /etc/postfix/vmailbox
+touch /etc/postfix/vmailbox
+for mailbox in ${MAILBOXES}
+do
+    echo "${mailbox} #" >> /etc/postfix/vmailbox
+done
+
+postmap /etc/postfix/vmailbox
+
+# ----------------------------------------------------------------------------
+
+rm -f /etc/postfix/virtual
+touch /etc/postfix/virtual
+for alias in ${ALIASES}
+do
+    src=`echo ${alias} | cut -d = -f 1`
+    dest=`echo ${alias} | cut -d = -f 2`
+    echo "${src} ${dest}" >> /etc/postfix/virtual
+done
+
+postmap /etc/postfix/virtual
+
+# ----------------------------------------------------------------------------
 
 echo "[${RELAY_HOST}]:${RELAY_PORT} ${RELAY_USERNAME}:${RELAY_PASSWORD}" \
     > /etc/postfix/sasl_passwd
 
 postmap /etc/postfix/sasl_passwd
 
+# ----------------------------------------------------------------------------
+
 postalias /etc/postfix/aliases
+
+# ----------------------------------------------------------------------------
+
+postconf -e \
+    "relayhost = [${RELAY_HOST}]:${RELAY_PORT}" \
+    "myhostname = ${HOSTNAME}" \
+    "mydomain = ${HOSTNAME}" \
+    "smtpd_sasl_path = inet:${SASL_AUTH_HOST}:${SASL_AUTH_PORT}" \
+    "virtual_transport = lmtp:${LMTP_HOST}:${LMTP_PORT}" \
+    "virtual_mailbox_domains = ${MAIL_DOMAINS}" \
+    "virtual_mailbox_maps = lmdb:/etc/postfix/vmailbox" \
+    "virtual_alias_maps = lmdb:/etc/postfix/virtual"
 
 echo 'Start postfix...' 1>&2
 

@@ -47,7 +47,12 @@ export const endpointDomain = get("endpoint-domain");
 
 export const mailDomains = cfg.requireObject<string[]>("mail-domains");
 
-export const version = "0.10.16";
+export const mailboxes = cfg.requireObject<string[]>("mailboxes");
+
+type Alias = {alias:string;destination:string};
+export const aliases = cfg.requireObject<Alias[]>("aliases");
+
+export const version = "0.11.2";
 
 export const volumeSize = "10";
 

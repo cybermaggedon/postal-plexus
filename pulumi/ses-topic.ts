@@ -3,7 +3,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
 import { awsProvider } from './aws-provider';
-import { prefix, tags, region, mailDomains } from './config';
+import { prefix, tags, region, mailboxes } from './config';
 import { ruleset } from './ses-ruleset';
 
 export const mailTopic = new aws.sns.Topic(
@@ -21,12 +21,14 @@ const topicPolicy = pulumi.all([
 
         return JSON.stringify({
             "Version": "2012-10-17",
-            "Statement": mailDomains.map(
-                (domain) => {
-                    const ruleArn = `${rulesetArn}:receipt-rule/${domain}`;
+            "Statement": mailboxes.map(
+                (address) => {
+
+                    const tag = address.replace(/\./g, "-").replace(/@/g, "-");
+                    const ruleArn = `${rulesetArn}:receipt-rule/${tag}`;
 
                     return {
-                        "Sid": `AllowSnsPublish-${domain}`,
+                        "Sid": `AllowSnsPublish-${tag}`,
                         "Effect": "Allow",
                         "Principal": {
                             "Service":"ses.amazonaws.com",

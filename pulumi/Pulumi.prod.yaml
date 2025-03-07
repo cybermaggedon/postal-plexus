@@ -5,16 +5,23 @@ config:
   postal-plexus:vpc-cidr: 172.38.0.0/16
   postal-plexus:pub-subnet-cidr: 172.38.48.0/20
 
-  postal-plexus:endpoint-hostname: mail.mydomain.net
-  postal-plexus:endpoint-domain: mydomain.net
-
   postal-plexus:mail-domains:
   - mydomain1.com
   - mydomain2.com
+
+  postal-plexus:mailboxes:
+  - user1@mydomain1.com
+  - user2@mydomain2.com
 
   postal-plexus:users:
   - user: mydomain1.com
     password: ksajdhajshdkasjdhoihsfiahsof
   - user: mydomain2.com
     password: lifeuopuwoeuoijfpfsdhaosdahsdo
+
+  postal-plexus:aliases:
+  - alias: postmaster@mydomain1.com
+    destination: user1@mydomain1.com
+  - alias: postmaster@mydomain2.com
+    destination: user2@mydomain2.com
 
