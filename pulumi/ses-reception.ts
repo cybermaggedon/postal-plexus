@@ -3,7 +3,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
 import { awsProvider } from './aws-provider';
-import { prefix, tags, region, mailDomains } from './config';
+import { prefix, tags, region, mailDomains, mailboxes } from './config';
 import { mailIdentities } from './ses-identity';
 import { bucket } from './bucket';
 import { ruleset } from './ses-ruleset';
@@ -31,16 +31,16 @@ export const bucketPolicy = pulumi.all([
 ]).apply(
     ([arn, bucketName]) => {
 
-
         return JSON.stringify({
             "Version": "2012-10-17",
-            "Statement": mailDomains.map(
-                (domain) => {
+            "Statement": mailboxes.map(
+                (address) => {
 
-                    const ruleArn = `${arn}:receipt-rule/${domain}`;
+                    const tag = address.replace(/\./g, "-").replace(/@/g, "-");
+                    const ruleArn = `${arn}:receipt-rule/${tag}`;
 
                     return {
-                        "Sid": `SESPermissionToWriteEmail-${domain}`,
+                        "Sid": `SESPermissionToWriteEmail-${tag}`,
                         "Effect": "Allow",
                         "Principal": {
                             "Service": "ses.amazonaws.com"
@@ -72,26 +72,29 @@ export const bucketPolicyAttachment = new aws.s3.BucketPolicy(
     { provider: awsProvider }
 );
 
-export const rules =
-    mailDomains.map(
-        (domain, ix) => {
+let previous : string = "";
+let previousResource : any = null;
 
-            const tag = domain.replace(/\./g, "-");
+export const rules =
+    mailboxes.map(
+        (address, ix) => {
+
+            const tag = address.replace(/\./g, "-").replace(/@/g, "-");
 
             const rule = new aws.ses.ReceiptRule(
                 `mail-rule-${tag}`,
                 {
-                    name: domain,
+                    name: tag,
                     ruleSetName: ruleset.ruleSetName,
                     recipients: [
-                        domain
+                        address
                     ],
                     enabled: true,
                     scanEnabled: true,
                     addHeaderActions: [
                         {
-                            headerName: "X-Mailbox-Name",
-                            headerValue: domain,
+                            headerName: "X-Mailbox",
+                            headerValue: address,
                             position: 1,
                         }
                     ],
@@ -99,24 +102,65 @@ export const rules =
                         {
                             bucketName: bucket.bucket,
                             position: 2,
-                            objectKeyPrefix: domain,
+                            objectKeyPrefix: address,
                             topicArn: mailTopic.arn,
                         }
                     ],
+                    stopActions: [
+                        {
+                            position: 3,
+                            scope: "RuleSet",
+                        }
+                    ],
+                    ...(previous != "") && { after: previous },
                 },
                 {
                     provider: awsProvider,
                     dependsOn: [
                         bucketPolicyAttachment, mailQueuePolicyAttachment,
                         mailTopicPolicyAttachment,
-                    ],
+                    ] + previousResource ? [previousResource] : []
                 }
             );
+
+            previous = tag;
+            previousResource = rule;
 
         }
 
     );
 
+const bounceRule = new aws.ses.ReceiptRule(
+    `mail-rule-bounce`,
+    {
+        name: "bounce",
+        after: previous,
+        ruleSetName: ruleset.ruleSetName,
+        bounceActions: [
+            {
+                position: 0,
+                message: "Recipient not known",
+                sender: "mailer-daemon@stanhope.house",
+                smtpReplyCode: "550",
+            }
+        ],
+        enabled: true,
+        scanEnabled: true,
+        stopActions: [
+            {
+                position: 1,
+                scope: "RuleSet",
+            }
+        ],
+    },
+    {
+        provider: awsProvider,
+        dependsOn: [
+            bucketPolicyAttachment, mailQueuePolicyAttachment,
+            mailTopicPolicyAttachment,
+        ],
+    }
+);
 
 mailDomains.map(
 
