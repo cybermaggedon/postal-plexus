@@ -118,6 +118,12 @@ export const smtpSecurityGroup = new aws.ec2.SecurityGroup(
                 toPort: 25,
                 cidrBlocks: [ "0.0.0.0/0" ],
             },
+            {
+                protocol: 'tcp',
+                fromPort: 587,
+                toPort: 587,
+                cidrBlocks: [ "0.0.0.0/0" ],
+            },
         ],
         egress: [
             {
