@@ -123,12 +123,6 @@ const postfixTaskDefinition = new aws.ecs.TaskDefinition(
                     ],
                     portMappings: [
                         {
-                            containerPort: 25,
-                            hostPort: 25,
-                            protocol: "tcp",
-                            name: "smtp"
-                        },
-                        {
                             containerPort: 587,
                             hostPort: 587,
                             protocol: "tcp",
