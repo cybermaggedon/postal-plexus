@@ -49,26 +49,90 @@ class Relay:
                 self.receive()
             except Exception as e:
                 logger.error(f"Exception: {e}")
-                time.sleep(10)
+                time.sleep(20)
                 logger.info("Restarting...")
+
+    def relay(self, recipients, content):
+        
+        logger.info("- Relaying...")
+
+        s = smtplib.LMTP(
+            host = self.lmtp_host,
+            port = self.lmtp_port,
+        )
+
+        s.sendmail(
+            from_addr = "sqs-to-lmtp",         # Doesn't matter
+            to_addrs = recipients,             # Sets destination boxes
+            msg = content,
+        )
+
+        s.quit()
+
+    def process_message(self, msg):
+
+        logger.info("Processing message.")
+        print(msg)
+
+        logger.info("- Unpack body...")
+        body = json.loads(msg["Body"])
+        receipt = msg["ReceiptHandle"]
+
+        logger.info("- Unpack message...")
+        message = json.loads(body["Message"])
+
+        logger.info("- Get metadata...")
+        key = message["receipt"]["action"]["objectKey"]
+        bucket = message["receipt"]["action"]["bucketName"]
+        prefix = message["receipt"]["action"]["objectKeyPrefix"]
+
+        recipients = message["receipt"]["recipients"]
+
+        logger.info("- Get bucket object...")
+
+        object = self.s3.get_object(
+            Bucket = bucket,
+            Key = key,
+        )
+
+        logger.info("- Read object...")
+        content = object["Body"].read()
+
+        self.relay(recipients, content)
+
+        logger.info("- Delete message from queue...")
+
+        self.sqs.delete_message(
+            QueueUrl = self.queue_url,
+            ReceiptHandle = receipt,
+        )
+
+        self.s3.delete_object(
+            Bucket = bucket,
+            Key = key,
+        )
+
+        logger.info("- Message processed.")
 
     def receive(self):
 
         logger.info("Connecting to AWS...")
 
-        sqs = self.session.client("sqs")
-        s3 = self.session.client("s3")
+        self.sqs = self.session.client("sqs")
+        self.s3 = self.session.client("s3")
 
-        queue_url = sqs.get_queue_url(QueueName=self.queue_name)["QueueUrl"]
+        self.queue_url = self.sqs.get_queue_url(
+            QueueName=self.queue_name
+        )["QueueUrl"]
 
-        logger.info(f"Using queue {queue_url}")
+        logger.info(f"Using queue {self.queue_url}")
 
         logger.info("Connected.")
 
         while True:
 
-            response = sqs.receive_message(
-                QueueUrl = queue_url,
+            response = self.sqs.receive_message(
+                QueueUrl = self.queue_url,
                 WaitTimeSeconds = self.timeout,
             )
 
@@ -78,60 +142,11 @@ class Relay:
 
             for msg in response["Messages"]:
 
-                logger.info("Processing message.")
-
-                logger.info("- Unpack body...")
-                body = json.loads(msg["Body"])
-                receipt = msg["ReceiptHandle"]
-
-                logger.info("- Unpack message...")
-                message = json.loads(body["Message"])
-
-                logger.info("- Get metadata...")
-                key = message["receipt"]["action"]["objectKey"]
-                bucket = message["receipt"]["action"]["bucketName"]
-                prefix = message["receipt"]["action"]["objectKeyPrefix"]
-
-                logger.info("- Get bucket object...")
-                object = s3.get_object(
-                    Bucket = bucket,
-                    Key = key,
-                )
-
-                logger.info("- Read object...")
-                content = object["Body"].read()
-
-                logger.info("- Relaying...")
-
-                print(self.lmtp_host)
-                print(self.lmtp_port)
-
-                s = smtplib.LMTP(
-                    host = self.lmtp_host,
-                    port = self.lmtp_port,
-                )
-
-                s.sendmail(
-                    from_addr = "localhost",         # Doesn't matter
-                    to_addrs = [prefix],   # Sets destination box
-                    msg = content,
-                )
-
-                s.quit()
-
-                logger.info("- Delete message from queue...")
-
-                s3.delete_object(
-                    Bucket = bucket,
-                    Key = key,
-                )
-
-                sqs.delete_message(
-                    QueueUrl = queue_url,
-                    ReceiptHandle = receipt,
-                )
-
-                logger.info("- Message processed.")
+                try:
+                    self.process_message(msg)
+                except Exception as e:
+                    logger.error(f"Exception from message processing: {e}")
+                    logger.info("Ignored.")
 
             logger.info("Messages processed.")
 
