@@ -1,7 +1,7 @@
 
 all: containers
 
-VERSION=0.10.17
+VERSION=0.11.0
 ARCH=--platform linux/arm64
 
 containers:

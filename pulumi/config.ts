@@ -49,7 +49,7 @@ export const mailDomains = cfg.requireObject<string[]>("mail-domains");
 
 export const mailboxes = cfg.requireObject<string[]>("mailboxes");
 
-export const version = "0.10.16";
+export const version = "0.11.0";
 
 export const volumeSize = "10";
 
