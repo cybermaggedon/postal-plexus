@@ -72,9 +72,6 @@ export const bucketPolicyAttachment = new aws.s3.BucketPolicy(
     { provider: awsProvider }
 );
 
-let previous : string = "";
-let previousResource : any = null;
-
 export const rules =
     mailboxes.map(
         (address, ix) => {
@@ -112,55 +109,19 @@ export const rules =
                             scope: "RuleSet",
                         }
                     ],
-                    ...(previous != "") && { after: previous },
                 },
                 {
                     provider: awsProvider,
                     dependsOn: [
                         bucketPolicyAttachment, mailQueuePolicyAttachment,
                         mailTopicPolicyAttachment,
-                    ] + previousResource ? [previousResource] : []
+                    ]
                 }
             );
-
-            previous = tag;
-            previousResource = rule;
 
         }
 
     );
-
-const bounceRule = new aws.ses.ReceiptRule(
-    `mail-rule-bounce`,
-    {
-        name: "bounce",
-        after: previous,
-        ruleSetName: ruleset.ruleSetName,
-        bounceActions: [
-            {
-                position: 0,
-                message: "Recipient not known",
-                sender: "mailer-daemon@stanhope.house",
-                smtpReplyCode: "550",
-            }
-        ],
-        enabled: true,
-        scanEnabled: true,
-        stopActions: [
-            {
-                position: 1,
-                scope: "RuleSet",
-            }
-        ],
-    },
-    {
-        provider: awsProvider,
-        dependsOn: [
-            bucketPolicyAttachment, mailQueuePolicyAttachment,
-            mailTopicPolicyAttachment,
-        ],
-    }
-);
 
 mailDomains.map(
 
