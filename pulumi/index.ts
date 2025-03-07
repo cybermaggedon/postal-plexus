@@ -9,6 +9,7 @@ import * as fs from 'fs';
 
 import * as domains from './domains';
 import * as ses from './ses';
+import * as certs from './certs';
 import * as sesRuleset from './ses-ruleset';
 import * as sesReception from './ses-reception';
 import * as sesUser from './ses-user';
@@ -44,6 +45,7 @@ caCert.certPem.apply(
 
 const resources = [
     domains,
+    certs,
     ses,
     sesRuleset,
     topic,

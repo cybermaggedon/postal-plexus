@@ -72,28 +72,6 @@ export const keypair = new aws.ec2.KeyPair(
 
 ////////////////////////////////////////////////////////////////////////////
 
-/*
-const inlinePolicy = bucket.bucket.apply(
-    (bucket) =>
-        JSON.stringify({
-            Version: "2012-10-17",
-            Statement: [{
-                Sid: "AllowS3Access",
-                Action: [
-                    "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:ListBucket",
-                ],
-                Effect: "Allow",
-                Resource: [
-                    `arn:aws:s3:::${bucket}`,
-                    `arn:aws:s3:::${bucket}/*`,
-                ],
-            }],
-        })
-);
-*/
-
 const role = new aws.iam.Role(
     "ec2-role",
     {
@@ -108,12 +86,6 @@ const role = new aws.iam.Role(
 	    }],
 	}),
         inlinePolicies: [
-/*
-            {
-                name: "s3-policy",
-                policy: inlinePolicy,
-            },
-*/
         ],
     },
     { provider: awsProvider, }

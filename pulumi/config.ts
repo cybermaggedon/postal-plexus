@@ -42,6 +42,9 @@ export const pubSubnetCidr = cfg.require("pub-subnet-cidr");
 type User = {user:string;password:string};
 export const users = cfg.requireObject<User[]>("users");
 
+export const endpointHostname = get("endpoint-hostname");
+export const endpointDomain = get("endpoint-domain");
+
 export const mailDomains = cfg.requireObject<string[]>("mail-domains");
 
 export const mailboxes = cfg.requireObject<string[]>("mailboxes");
