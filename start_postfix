@@ -55,6 +55,10 @@ postmap /etc/postfix/sasl_passwd
 
 # ----------------------------------------------------------------------------
 
+postalias /etc/postfix/aliases
+
+# ----------------------------------------------------------------------------
+
 postconf -e \
     "relayhost = [${RELAY_HOST}]:${RELAY_PORT}" \
     "myhostname = ${HOSTNAME}" \
