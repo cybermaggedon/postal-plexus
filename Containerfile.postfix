@@ -1,13 +1,13 @@
 
 FROM alpine:3.21.3
 
-ENV DOMAIN=example.com
-ENV RELAY_USERNAME=user
-ENV RELAY_PASSWORD=password
-ENV RELAY_HOST=email-smtp.eu-west-2.amazonaws.com
-ENV RELAY_PORT=2587
-ENV SASL_AUTH_HOST=dovecot
-ENV SASL_AUTH_PORT=12345
+# ENV DOMAIN=example.com
+# ENV RELAY_USERNAME=user
+# ENV RELAY_PASSWORD=password
+# ENV RELAY_HOST=email-smtp.eu-west-2.amazonaws.com
+# ENV RELAY_PORT=2587
+# ENV SASL_AUTH_HOST=dovecot
+# ENV SASL_AUTH_PORT=12345
 
 RUN apk add --no-cache postfix postfix-pcre
 RUN echo "maillog_file = /dev/stdout" >> /etc/postfix/main.cf

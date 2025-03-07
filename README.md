@@ -3,10 +3,14 @@
 
 ## Overview
 
-This works for me managing email for a small number of domains.
+This works for me managing email for a small number of email domains, and 
+it 'just works' for me.  If you don't understand Dovecot, Postfix and
+Pulumi, maybe give this a miss because you might struggle to diagnose
+problems.  It helps to understand SES, but that's fairly straightforward
+to fix with the AWS docs.  There may be easier ways to achieve this outcome.
 
 This is a low-footprint mail system deployed to AWS:
-- SES is used to integrate with the global email system
+- AWS SES is used to send/receive on the global email system
 - Dovecot provides IMAP mailboxes
 - Postfix relays SMTP to AWS SES.
 - A delivery script takes the email from SES via an SQS queue and loads into
