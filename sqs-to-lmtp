@@ -72,7 +72,6 @@ class Relay:
     def process_message(self, msg):
 
         logger.info("Processing message.")
-        print(msg)
 
         logger.info("- Unpack body...")
         body = json.loads(msg["Body"])
