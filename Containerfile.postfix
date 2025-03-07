@@ -20,7 +20,7 @@ RUN \
         'smtpd_sasl_security_options = noanonymous' \
         'broken_sasl_auth_clients = yes' \
         'smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination' \
-        'smtpd_tls_security_level = may' \
+        'smtpd_tls_security_level = encrypt' \
         'smtpd_tls_key_file = /etc/postfix/pki/server.key' \
         'smtpd_tls_cert_file = /etc/postfix/pki/server.crt' \
         'smtpd_tls_loglevel = 1' \
