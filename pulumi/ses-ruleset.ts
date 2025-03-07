@@ -16,7 +16,7 @@ export const ruleset = new aws.ses.ReceiptRuleSet(
 export const rulesetActivation = new aws.ses.ActiveReceiptRuleSet(
     "ruleset-activation",
     {
-        ruleSetName: "postal-plexus"
+        ruleSetName: ruleset.ruleSetName
     },
     { provider: awsProvider }
 );
