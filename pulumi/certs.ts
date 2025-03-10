@@ -2,7 +2,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as tls from "@pulumi/tls";
 
-import { endpointHostname, endpointDomain } from './config';
+import { endpointHostname, endpointDomain, mailDomains } from './config';
 
 const caKey = new tls.PrivateKey(
     "ca-key",
@@ -47,9 +47,7 @@ const serviceReq = new tls.CertRequest(
             organizationalUnit: "Mail",
             organization: "Postal Plexus"
         },
-        dnsNames: [
-            endpointHostname,
-        ],
+        dnsNames: mailDomains.map(x => `mail.${x}`),
 });
 
 export const serviceCert = new tls.LocallySignedCert(
