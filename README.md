@@ -66,3 +66,18 @@ propagate, so the pulumi deploy will probably fail on verification.
                                `-----------------------> SES
 
 ```
+
+## Where is the mail stored?
+
+It's on an EFS filesystem, mounted on the dovecot container.  Be careful,
+`pulumi down` will destroy the stack including the EFS container.
+
+You can boot an instance and mount the EFS filesystem on an instance.
+Replace fs-XXXX with the filesystem ID which you can find in the EFS
+section of the AWS console.
+
+```
+mkdir /efs
+sudo mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-XXXX.efs.eu-west-2.amazonaws.com:/ /efs
+```
+
