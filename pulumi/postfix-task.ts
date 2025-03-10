@@ -184,7 +184,7 @@ const postfixService = new aws.ecs.Service(
         taskDefinition: postfixTaskDefinition.arn,
         serviceRegistries: {
             containerName: "postfix",
-            containerPort: 25,
+            containerPort: 587,
             registryArn: sdPostfixService.arn,
         },
         waitForSteadyState: false,
